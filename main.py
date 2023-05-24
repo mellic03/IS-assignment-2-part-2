@@ -13,7 +13,6 @@ def unpickle(filepath: str) -> dict:
 
 def sigmoid(f: float) -> float:
     return 1 / (1 + np.exp(-f))
-vecsigmoid = np.vectorize(sigmoid)
 
 
 def MSE(output: list[float], target: list[float]) -> float:
@@ -25,36 +24,20 @@ def MSE(output: list[float], target: list[float]) -> float:
 
 class NeuralNetwork:
     
-    def __init__(self, layout: list[int], learning_rate: float, epochs: int, mbs: int) -> None:
-        
-        self.learning_rate = learning_rate
-        self.epochs = epochs
-        self.mini_batch_size = mbs
-
+    def __init_layout(self, layout: list[int]):
         self.input_len = layout[0]
         self.hidden_len = layout[1]
         self.output_len = layout[2]
-
 
         self.input = np.zeros(self.input_len)
         self.hidden = np.zeros(self.hidden_len)
         self.output = np.zeros(self.output_len)
 
-        self.hid_biases = [0.1] * self.hidden_len
-        self.out_biases = [0.1] * self.output_len
+        self.hid_biases = [0.1] * self.hidden_len #np.random.uniform(0.0, 0.5, self.hidden_len)
+        self.out_biases = [0.1] * self.output_len #np.random.uniform(0.0, 0.5, self.output_len)
 
-
-        # Weights
-        self.ih_weights = np.zeros((self.input_len, self.hidden_len))
-        self.ho_weights = np.zeros((self.hidden_len, self.output_len))
-       
-        for i in range(0, self.input_len):
-            for h in range(0, self.hidden_len):
-                self.ih_weights[i][h] = random.uniform(-1.0/self.input_len, +1.0/self.input_len)
-        for h in range(0, self.hidden_len):
-            for o in range(0, self.output_len):
-                self.ho_weights[h][o] = random.uniform(-1.0/self.input_len, +1.0/self.input_len)
-       
+        self.ih_weights = np.random.uniform(-0.5, +0.5, (self.input_len, self.hidden_len))
+        self.ho_weights = np.random.uniform(-0.5, +0.5, (self.hidden_len, self.output_len))
 
         self.ih_weight_change = np.zeros((self.input_len, self.hidden_len))
         self.ho_weight_change = np.zeros((self.hidden_len, self.output_len))
@@ -64,44 +47,37 @@ class NeuralNetwork:
 
 
 
-    # Liat said this!!!
-    # 
-    # For each mini batch:
-    #   Backpropagate after every sample but store weight change
-    #   Apply the average weight change at the end of the mini batch
-    #
+    def __init__(self, layout: list[int], learning_rate: float, epochs: int, mbs: int) -> None:
+        
+        self.learning_rate = learning_rate
+        
+        self.epoch = 0
+        self.epochs = epochs
+        
+        self.mini_batch_size = mbs
+
+        self.__init_layout(layout)
+
 
     def __forwardpropagate(self, input: list[float]) -> None:
 
         self.input = np.array([i/1.0 for i in input])
-        self.hidden = sigmoid(np.dot(self.input, self.ih_weights))
-        self.output = sigmoid(np.dot(self.hidden, self.ho_weights))
+        self.hidden = sigmoid(np.dot(self.input, self.ih_weights) + self.hid_biases)
+        self.output = sigmoid(np.dot(self.hidden, self.ho_weights) + self.out_biases)
 
 
     def __backpropagate_collect_avg(self, target: list[float]) -> None:
-        
-        sums = np.zeros(self.hidden_len)
-
         output_error = self.output - target
         dOut_dNet = self.output * (1.0 - self.output)
+    
+        ho_weighted_error = np.dot(output_error * dOut_dNet, self.ho_weights.T)
+        dHidden_dNet = self.hidden * (1.0 - self.hidden)
 
-        for o in range(0, self.output_len):
-            A = output_error[o]
-            B = dOut_dNet[o]
+        self.output_bias_change += output_error * dOut_dNet
+        self.hidden_bias_change += np.sum(ho_weighted_error * dHidden_dNet, axis=0)
 
-            for h in range(0, self.hidden_len):
-                C = self.hidden[h]
-                self.ho_weight_change[h][o] += A * B * C
-
-                D = self.ho_weights[h][o]
-                sums[h] += A*B*D
-
-
-        dOut_dNet = self.hidden * (1.0 - self.hidden)
-
-        for h in range(0, self.hidden_len):
-            for i in range(0, self.input_len):
-                self.ih_weight_change[i][h] += sums[h] * dOut_dNet[h] * self.input[i]
+        self.ho_weight_change += np.outer(self.hidden, output_error * dOut_dNet)
+        self.ih_weight_change += np.outer(self.input, ho_weighted_error * dHidden_dNet)
 
 
     def __backpropagate_apply_avg(self) -> None:
@@ -110,12 +86,13 @@ class NeuralNetwork:
 
         self.ho_weights -= LRATE * self.ho_weight_change
         self.ih_weights -= LRATE * self.ih_weight_change
+        # self.hid_biases -= LRATE * self.hidden_bias_change
+        # self.out_biases -= LRATE * self.output_bias_change
 
-        self.ho_weight_change *= 0
-        self.ih_weight_change *= 0
-
-        self.output_bias_change *= 0
-        self.hidden_bias_change *= 0
+        self.ho_weight_change.fill(0)
+        self.ih_weight_change.fill(0)
+        self.output_bias_change.fill(0)
+        self.hidden_bias_change.fill(0)
 
 
     def classify(self, input: list[float]) -> int:
@@ -141,14 +118,14 @@ class NeuralNetwork:
         count: int = 0
         avg_mse: float = 0.0
 
-        for i in range(0, self.epochs):
+        while self.epoch < self.epochs:
 
             temp = list(zip(training_inputs, training_outputs))
             random.shuffle(temp)
             training_inputs, training_outputs = zip(*temp)
             training_inputs, training_outputs = list(training_inputs), list(training_outputs)
 
-            print("\nEpoch %d/%d" % (i+1, self.epochs))
+            print("\nEpoch %d/%d" % (self.epoch+1, self.epochs))
 
             batch_num: int = 0
             for (input, output) in zip(training_inputs, training_outputs):
@@ -166,9 +143,16 @@ class NeuralNetwork:
                 avg_mse += MSE([out for out in self.output], output)
                 count += 1
 
+            self.epoch += 1
 
-    def toFile(self, filepath: str) -> None:
-        
+    def toFile(self) -> None:
+
+        s: tuple = (
+            self.input_len, self.hidden_len, self.output_len, self.learning_rate,
+            self.epoch, self.epochs, self.mini_batch_size
+        )
+        filepath = "(%d->%d->%d)-(%.4f)-(%dof%d)-(%d)-weights.txt" % s
+
         fh = open(filepath, "w")
 
         fh.write("%d %d %d\n" % (self.input_len, self.hidden_len, self.output_len))
@@ -187,18 +171,13 @@ class NeuralNetwork:
         fh = open(filepath, "r")
 
         line = fh.readline()
-        self.input_len, self.hidden_len, self.output_len = line.split(" ")
-        self.input_len  = int(self.input_len)
-        self.hidden_len = int(self.hidden_len)
-        self.output_len = int(self.output_len)
+        input_len, hidden_len, output_len = line.split(" ")
+        input_len  = int(input_len)
+        hidden_len = int(hidden_len)
+        output_len = int(output_len)
 
-        self.input  = [0.0] * self.input_len
-        self.hidden = [0.0] * self.hidden_len
-        self.output = [0.0] * self.output_len
+        self.__init_layout([input_len, hidden_len, output_len])
 
-        self.ih_weights = [[0.0] * self.hidden_len] * self.input_len
-        self.ho_weights = [[0.0] * self.output_len] * self.hidden_len
-        
         for ih in range(0, self.input_len * self.hidden_len):
             self.ih_weights[ih//self.hidden_len][ih%self.hidden_len] = float(fh.readline())
 
@@ -237,61 +216,82 @@ def to_thing(category: int) -> list[int]:
 
 
 
-def onExit(network: NeuralNetwork, inputs, outputs):
-    network.toFile("backupweights.txt")
-    network.test(inputs, outputs)
+def onExit(net: NeuralNetwork, inputs, outputs):
+    net.toFile()
+    net.test(inputs, outputs)
 
 
 
 def main():
 
-    layout: list[int] = [3072, 30, 10]
-    nn = NeuralNetwork(layout, learning_rate=1.1, epochs=20, mbs=100)
+    # layout: list[int] = [3072, 30, 10]
+    # nn = NeuralNetwork(layout, learning_rate=1.1, epochs=20, mbs=100)
 
-    dict1 = unpickle("cifar-10-batches-py/data_batch_1")
-    dict2 = unpickle("cifar-10-batches-py/data_batch_2")
+    # dicts = [
+    #     unpickle("cifar-10-batches-py/data_batch_1"),
+    #     unpickle("cifar-10-batches-py/data_batch_2"),
+    #     unpickle("cifar-10-batches-py/data_batch_3"),
+    #     unpickle("cifar-10-batches-py/data_batch_4"),
+    #     unpickle("cifar-10-batches-py/data_batch_5")
+    # ]
+        
+    # training_inputs = []
+    # training_outputs = []
 
-    inputs = []
-    outputs = []
-
-    for (data, label) in zip(dict1[b"data"], dict1[b"labels"]):
-        inputs.append(data)
-        outputs.append(to_thing(int(label)))
+    # for d in dicts:
+    #     for (data, label) in zip(d[b"data"], d[b"labels"]):
+    #         training_inputs.append(data)
+    #         training_outputs.append(to_thing(int(label)))
   
-    for (data, label) in zip(dict2[b"data"], dict2[b"labels"]):
-        inputs.append(data)
-        outputs.append(to_thing(int(label)))
+
+    # test_data = unpickle("cifar-10-batches-py/test_batch")
+    # testing_inputs = []
+    # testing_outputs = []
+    # for (data, label) in zip(test_data[b"data"], test_data[b"labels"]):
+    #     testing_inputs.append(data)
+    #     testing_outputs.append(to_thing(int(label)))
+  
+    # # atexit.register(onExit, nn, testing_inputs, testing_outputs)
+
+    # nn.train(training_inputs, training_outputs)
+    # nn.toFile()
+
+    # mini_batch_sizes = [1, 5, 20, 300]
+    # learning_rates = [0.001, 0.01, 10, 100]
+
+    # for mbsize in mini_batch_sizes:
+    #     nn = NeuralNetwork(layout, learning_rate=1.0, epochs=20, mbs=mbsize)
+    #     nn.train(training_inputs, training_outputs)
+    #     nn.test(testing_inputs, testing_outputs)
+    #     nn.toFile()
+
+    # for lrate in learning_rates:
+    #     nn = NeuralNetwork(layout, learning_rate=lrate, epochs=20, mbs=100)
+    #     nn.train(training_inputs, training_outputs)
+    #     nn.test(testing_inputs, testing_outputs)
+    #     nn.toFile()
 
 
-    atexit.register(onExit, nn, inputs[1000:2000], outputs[1000:2000])
+    layout: list[int] = [2, 4, 2]
+    nn = NeuralNetwork(layout, learning_rate=2.2, epochs=3000, mbs=1)
+
+
+    inputs = [
+        [0.00, 0.00],
+        [0.00, 1.00],
+        [1.00, 0.00],
+        [1.00, 1.00],
+    ]
+    outputs = [
+        [0.00, 1.00],
+        [1.00, 0.00],
+        [1.00, 0.00],
+        [0.00, 1.00]
+    ]
 
 
     nn.train(inputs, outputs)
-    nn.test(inputs[1000:1500], outputs[1000:1500])
-
-    # layout: list[int] = [2, 4, 2]
-    # nn = NeuralNetwork(layout, learning_rate=0.5, epochs=3000, mbs=1)
-
-
-    # inputs = [
-    #     [0.00, 0.00],
-    #     [0.00, 1.00],
-    #     [1.00, 0.00],
-    #     [1.00, 1.00],
-    # ]
-    # outputs = [
-    #     [0.00, 1.00],
-    #     [1.00, 0.00],
-    #     [1.00, 0.00],
-    #     [0.00, 1.00]
-    # ]
-
-
-    # nn.train(inputs, outputs)
-    # nn.test(inputs, outputs)
-
-
-
+    nn.test(inputs, outputs)
 
 
 
