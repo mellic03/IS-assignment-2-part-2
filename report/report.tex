@@ -1,0 +1,47 @@
+\documentclass{article}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+\renewcommand*\descriptionlabel[1]{\hspace\leftmargin$#1$}
+\usepackage{amssymb}
+\usepackage[a4paper, margin=3cm]{geometry}
+\usepackage{amsmath}
+\usepackage[ruled, vlined]{algorithm2e}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+\usepackage{subfig}
+\everymath{\mathtt{\xdef\tmp{\fam\the\fam\relax}\aftergroup\tmp}}
+\everydisplay{\mathtt{\xdef\tmp{\fam\the\fam\relax}\aftergroup\tmp}}
+
+\begin{titlepage}
+    \title{2802ICT Intelligent Systems Assignment 2}
+    \author{Michael Ellicott \\ s5276830}
+    \date{\today}
+\end{titlepage}
+
+\begin{document}
+
+
+
+\maketitle
+\newpage
+
+
+\tableofcontents
+\newpage
+
+\input{dtree.tex}
+\newpage
+
+\input{nnet.tex}
+\newpage
+
+
+\end{document}

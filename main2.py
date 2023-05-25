@@ -68,19 +68,10 @@ def main():
     mini_batch_sizes = [300, 20, 5, 1]
 
 
-    nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=20, mbs=100)
+    nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=500, mbs=100)
     nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
     nn.toFile()
 
-    for lrate in learning_rates:
-        nn = NN.NeuralNetwork(layout, learning_rate=lrate, epochs=20, mbs=100)
-        nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
-        nn.toFile()
-
-    for mbsize in mini_batch_sizes:
-        nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=20, mbs=mbsize)
-        nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
-        nn.toFile()
 
 
 
