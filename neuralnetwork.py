@@ -132,6 +132,12 @@ class NeuralNetwork:
 
         while self.epoch < self.epochs:
 
+            if self.epoch >= 5:
+                self.mini_batch_size = 100
+            
+            if self.epoch >= 10:
+                self.learning_rate = 0.1
+
             temp = list(zip(training_inputs, training_outputs))
             random.shuffle(temp)
             training_inputs, training_outputs = zip(*temp)
@@ -169,7 +175,7 @@ class NeuralNetwork:
             self.input_len, self.hidden_len, self.output_len, self.learning_rate,
             self.epoch, self.epochs, self.mini_batch_size
         )
-        filepath = "models/(%d-%d-%d)-%.4f-%dof%d-%d-weights.txt" % s
+        filepath = "gmodels/(%d-%d-%d)-%.4f-%dof%d-%d-weights.txt" % s
 
         fh = open(filepath, "w")
 

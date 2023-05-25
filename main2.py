@@ -64,14 +64,23 @@ def main():
         testing_outputs.append(to_thing(int(label)))
 
 
-    learning_rates = [10, 1.0, 0.01, 0.001]
+    learning_rates = [100, 10, 1.0, 0.01, 0.001]
     mini_batch_sizes = [300, 20, 5, 1]
+    num_epochs = 200
 
+    # nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=num_epochs, mbs=100)
+    # nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
+    # nn.toFile()
 
-    nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=500, mbs=100)
-    nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
-    nn.toFile()
+    # for lrate in learning_rates:
+    #     nn = NN.NeuralNetwork(layout, learning_rate=lrate, epochs=num_epochs, mbs=100)
+    #     nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
+    #     nn.toFile()
 
+    for mbsize in mini_batch_sizes:
+        nn = NN.NeuralNetwork(layout, learning_rate=0.1, epochs=num_epochs, mbs=mbsize)
+        nn.train(training_inputs, training_outputs, testing_inputs, testing_outputs)
+        nn.toFile()
 
 
 

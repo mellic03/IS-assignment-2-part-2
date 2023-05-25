@@ -10,12 +10,17 @@
 }
 
 \renewcommand*\descriptionlabel[1]{\hspace\leftmargin$#1$}
-\usepackage{amssymb}
+
 \usepackage[a4paper, margin=3cm]{geometry}
+\usepackage{parskip}
+
+\usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage[ruled, vlined]{algorithm2e}
 \usepackage{inconsolata}
+
 \usepackage{graphicx}
+
 \usepackage{subfig}
 \everymath{\mathtt{\xdef\tmp{\fam\the\fam\relax}\aftergroup\tmp}}
 \everydisplay{\mathtt{\xdef\tmp{\fam\the\fam\relax}\aftergroup\tmp}}
@@ -42,6 +47,33 @@
 
 \input{nnet.tex}
 \newpage
+
+
+
+\section*{Conclusion}
+
+Classification is one example of machine learning.
+
+\paragraph{Decision Trees}
+Decision trees are useful for BLAH BLAH BLAH but they are limited in the
+kind of input they can accept. They are unable to identify visual
+patterns, so they cannot be used for image classification.
+
+\paragraph{Neural Networks}
+Neural networds are useful for more complex classifcation problems.
+
+Mini-batch size and learning rate both have a significant impact on
+the performance of a neural network. Too low of a mini-batch size and
+(EFFECT OF MBS). Too low of a learning rate drastically increases the
+amount of training time required, while too high of a learning rate
+tends to get the model stuck in a local optima.
+
+When using a 3-layer neural network (3072 - 30 - 10) to classify images from
+the cifar-10 dataset, a mini-batch size of 5 and a learning rate of 1
+appear to provide the greatest error reduction in the least amount of
+time.
+
+
 
 
 \end{document}
